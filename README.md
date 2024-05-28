@@ -10,12 +10,12 @@ Improvements:
 
 DEFAULT ACTION now is WATCH, `it needs -w yes` parameter to write changes! (CSV file or alerts in Elastic).
 
-Use cases:
-`vd_update.py` // shows all the vulnes of all agents on screen in JSON format.
-`vd_update.py -c agents` // shows all the vulnes of all agents in CSV format.
-`vd_update.py -a 002` // shows all the vulnes of agent 002 in JSON format.
-`vd_update.py -a 002 -c /home/john/002.csv -w yes` // WRITE all the vulnes from agent 002 in file /home/john/002.csv with CSV format.
-`vd_update.py -c /agents.csv -w yes` // Loads all the vulnes from all agents into the file /agents.csv.
+**Use cases**:
+- **`vd_update.py`** // shows all the vulnes of all agents on screen in JSON format.
+- `vd_update.py -c agents` // shows all the vulnes of all agents in CSV format.
+- `vd_update.py -a 002` // shows all the vulnes of agent 002 in JSON format.
+- `vd_update.py -a 002 -c /home/john/002.csv -w yes` // WRITE all the vulnes from agent 002 in file /home/john/002.csv with CSV format.
+- `vd_update.py -c /agents.csv -w yes` // Loads all the vulnes from all agents into the file /agents.csv.
 
 `vd_update.py -h`
 ```
