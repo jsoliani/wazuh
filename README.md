@@ -1,23 +1,25 @@
 # The vd_update tool
 
- It can trigger alerts of last vulnerabilities found on the agents, it can create a CSV file with the vulnerabilities of one or all agents. Also can display on screen the vulnerabilities in the chosen format.
+ It can trigger alerts of the last vulnerabilities found in agents, it can create a CSV file with the vulnerabilities of one or all agents. It can also display vulnerabilities in the chosen format on the screen.
 
 Improvements:
 
  - Now it can export data into CSV format.
  - Fixed error "too many requests per minute" issue.
  - Added a delay to avoid overloading the API (by default is 0.3 secs per agent).
+ - Fixed issue with agents' names. ips and ids.
+ - Fixed issues exporting to CSV files.
 
-DEFAULT ACTION now is WATCH, `it needs -w yes` parameter to write changes! (CSV file or alerts in Elastic).
+DEFAULT ACTION now is **PRINT**, **`it needs -w yes`** parameter to write the output! (CSV file or alerts in Indexer/Elastic).
 
 **Use cases**:
-- **`vd_update.py`** // shows all the vulnes of all agents on screen in JSON format.
-- `vd_update.py -c agents` // shows all the vulnes of all agents in CSV format.
-- `vd_update.py -a 002` // shows all the vulnes of agent 002 in JSON format.
-- `vd_update.py -a 002 -c /home/john/002.csv -w yes` // WRITE all the vulnes from agent 002 in file /home/john/002.csv with CSV format.
-- `vd_update.py -c /agents.csv -w yes` // Loads all the vulnes from all agents into the file /agents.csv.
+- **`vd_update.py`** // Shows all the vulnes of all agents on screen in JSON format.
+- **`vd_update.py -w yes`** // Uploads vulnes from all agents to Indexer.
+- **`vd_update.py -a 002 -w yes`** // Uploads vulnes of agent 002 to Indexer.
+- **`vd_update.py -a 002 -c yes`** // Shows vulnes of agent 002 in CSV format.
+- **`vd_update.py -c agents.csv -w yes`** // Saves vulnes of all agents into the file **"agents.csv" with CSV format**.
 
-`vd_update.py -h`
+**# `vd_update.py -h`**
 ```
 usage: vd_update.py [-h] [-m MANAGER] [-u USER] [-p PASSWORD] [-port PORT] [-a AGENT] [-w WRITE] [-c CSV] [--debug]
 
