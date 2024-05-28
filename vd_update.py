@@ -26,9 +26,9 @@ requests.packages.urllib3.disable_warnings()
 
 
 # Send a message to socket.
-def send_event(msg):
+def send_event(msg,agentID,agentName):
     logging.debug('Sending {} to {} socket.'.format(msg, socketAddr))
-    string = '1:vulnerability-detector:{}'.format(msg)
+    string = f'1:[{agentID}] ({agentName}) any->vulnerability-detector:{msg}'
     sock = socket(AF_UNIX, SOCK_DGRAM)
     sock.connect(socketAddr)
     sock.send(string.encode())
@@ -126,29 +126,26 @@ def get_vulnerabilities(agents):
                     agent_vulnerabilities.append(result['name'])
 
                 # Create the log to be sent to the socket
-                if result["status"] != "VALID":
-                    return agent_vulnerabilities
-                else:
-                    alert = {
-                        "vulnerability":{}
-                    }
-                alert["vulnerability"] = {
-                    "type": result["type"],
-                    "title": result["title"],
-                    "detection_time": result["detection_time"],
-                    "cve": result["cve"], 
-                    "severity": result["severity"],
-                    "status": 'Active'
+                alert = {
+                    "vulnerability":{}
                 }
+
+                if "status" in result:
+                    if result["status"] == "VALID":
+                        alert["vulnerability"] = {
+        	          "type": result["type"],
+        	          "title": result["title"],
+        	          "detection_time": result["detection_time"],
+        	          "cve": result["cve"], 
+        	          "severity": result["severity"],
+                          "status": "Active"
+        	        }
+                    else:
+                        return agent_vulnerabilities
                 
                 if "external_references" in result:
                     alert['vulnerability']['external_references'] = result['external_references']            
-                    
-                alert['agent'] = {
-                    "id":agents['id'],
-                    "name":agents['name'],
-                    "ip":agents['ip']
-                }
+                
                 alert['rule'] = {
                     "description": result['title']
                 }
@@ -171,14 +168,16 @@ def get_vulnerabilities(agents):
                        "base_score": result["cvss3_score"]
                     }
                 counter += 1
+
+                print (alert)
                 
                 if ACTION == 'LOAD_CSV':
-                    exportCSV(alert)
+                    exportCSV(alert,agents)
                 elif ACTION == 'LOAD_ALERTS':
                     json_msg = json.dumps(alert, default=str)
-                    send_event(json_msg)
+                    send_event(json_msg,agents['id'],agents['name'])
                 elif ACTION == 'WATCH_CSV':
-                    line = f"{alert['agent']['name']}{CSV_CHAR}{alert['agent']['id']}{CSV_CHAR}{alert['agent']['ip']}{CSV_CHAR}{alert['vulnerability']['type']}{CSV_CHAR}{alert['rule']['description']}{CSV_CHAR}{alert['vulnerability']['detection_time']}{CSV_CHAR}{alert['vulnerability']['cve']}{CSV_CHAR}{alert['vulnerability']['severity']}{CSV_CHAR}{alert['vulnerability']['status']}{CSV_CHAR}{alert['vulnerability']['external_references']}{CSV_CHAR}{alert['package']['name']}{CSV_CHAR}{alert['package']['version']}{CSV_CHAR}{alert['package']['architecture']}{CSV_CHAR}{alert['package']['condition']}{CSV_CHAR}"
+                    line = f"{agents['name']}{CSV_CHAR}{agents['id']}{CSV_CHAR}{agents['ip']}{CSV_CHAR}{alert['vulnerability']['type']}{CSV_CHAR}{alert['rule']['description']}{CSV_CHAR}{alert['vulnerability']['detection_time']}{CSV_CHAR}{alert['vulnerability']['cve']}{CSV_CHAR}{alert['vulnerability']['severity']}{CSV_CHAR}{alert['vulnerability']['status']}{CSV_CHAR}{alert['vulnerability']['external_references']}{CSV_CHAR}{alert['vulnerability']['package']['name']}{CSV_CHAR}{alert['vulnerability']['package']['version']}{CSV_CHAR}{alert['vulnerability']['package']['architecture']}{CSV_CHAR}{alert['vulnerability']['package']['condition']}{CSV_CHAR}"
                     if counter == 1:                    
                         print(f'Agent{CSV_CHAR}Agent_ID{CSV_CHAR}Agent_IP{CSV_CHAR}Type{CSV_CHAR}Description{CSV_CHAR}Detection_Date{CSV_CHAR}CVE{CSV_CHAR}Severity{CSV_CHAR}Status{CSV_CHAR}External_References{CSV_CHAR}Package{CSV_CHAR}Pack_Version{CSV_CHAR}Pack_Arch{CSV_CHAR}Pack_Condition{CSV_CHAR}CVSS3_Score{CSV_CHAR}CVSS2_Score')
                     if "cvss" in alert:
@@ -230,12 +229,12 @@ def get_vulnerabilities(agents):
     return agent_vulnerabilities
 
 # Generate CSV file
-def exportCSV(event):
-    line = f"{event['agent']['name']}{CSV_CHAR}{event['agent']['id']}{CSV_CHAR}{event['agent']['ip']}{CSV_CHAR}{event['vulnerability']['type']}{CSV_CHAR}{event['rule']['description']}{CSV_CHAR}{event['vulnerability']['detection_time']}{CSV_CHAR}{event['vulnerability']['cve']}{CSV_CHAR}{event['vulnerability']['severity']}{CSV_CHAR}{event['vulnerability']['status']}{CSV_CHAR}{event['vulnerability']['external_references']}{CSV_CHAR}{event['package']['name']}{CSV_CHAR}{event['package']['version']}{CSV_CHAR}{event['package']['architecture']}{CSV_CHAR}{event['package']['condition']}{CSV_CHAR}"
+def exportCSV(event,agent):
+    line = f"{agent['name']}{CSV_CHAR}{agent['id']}{CSV_CHAR}{agent['ip']}{CSV_CHAR}{event['vulnerability']['type']}{CSV_CHAR}{event['rule']['description']}{CSV_CHAR}{event['vulnerability']['detection_time']}{CSV_CHAR}{event['vulnerability']['cve']}{CSV_CHAR}{event['vulnerability']['severity']}{CSV_CHAR}{event['vulnerability']['status']}{CSV_CHAR}{event['vulnerability']['external_references']}{CSV_CHAR}{event['vulnerability']['package']['name']}{CSV_CHAR}{event['vulnerability']['package']['version']}{CSV_CHAR}{event['vulnerability']['package']['architecture']}{CSV_CHAR}{event['vulnerability']['package']['condition']}{CSV_CHAR}"
     if Path(CSV_FILE).is_file():
         with open(CSV_FILE, "a+") as csv_file:
             if LOGTEST:
-                csv_file.write(f"{event['agent']['name']}{CSV_CHAR}{event['agent']['id']}{CSV_CHAR}{event['agent']['ip']}{CSV_CHAR}{event['vulnerability']['type']}{CSV_CHAR}{event['rule']['description']}{CSV_CHAR}{event['vulnerability']['detection_time']}{CSV_CHAR}{event['vulnerability']['cve']}{CSV_CHAR}{event['vulnerability']['severity']}{CSV_CHAR}{event['vulnerability']['status']}{CSV_CHAR}{event['vulnerability']['external_references']}{CSV_CHAR}{event['package']['name']}{CSV_CHAR}{event['package']['version']}{CSV_CHAR}{event['package']['architecture']}{CSV_CHAR}{event['package']['condition']}{CSV_CHAR}")
+                csv_file.write(f"{agent['name']}{CSV_CHAR}{agent['id']}{CSV_CHAR}{agent['ip']}{CSV_CHAR}{event['vulnerability']['type']}{CSV_CHAR}{event['rule']['description']}{CSV_CHAR}{event['vulnerability']['detection_time']}{CSV_CHAR}{event['vulnerability']['cve']}{CSV_CHAR}{event['vulnerability']['severity']}{CSV_CHAR}{event['vulnerability']['status']}{CSV_CHAR}{event['vulnerability']['external_references']}{CSV_CHAR}{event['vulnerability']['package']['name']}{CSV_CHAR}{event['vulnerability']['package']['version']}{CSV_CHAR}{event['vulnerability']['package']['architecture']}{CSV_CHAR}{event['vulnerability']['package']['condition']}{CSV_CHAR}")
                 if "cvss3" in event['cvss']:
                     csv_file.write(f"{event['cvss']['cvss3']['base_score']}{CSV_CHAR}")
                 else:
@@ -245,7 +244,7 @@ def exportCSV(event):
                 else:
                     csv_file.write("-\n")
             else:
-                csv_file.write(f"{event['agent']['name']}{CSV_CHAR}{event['agent']['id']}{CSV_CHAR}{event['agent']['ip']}{CSV_CHAR}{event['vulnerability']['type']}{CSV_CHAR}{event['rule']['description']}{CSV_CHAR}{event['vulnerability']['detection_time']}{CSV_CHAR}{event['vulnerability']['cve']}{CSV_CHAR}{event['vulnerability']['severity']}{CSV_CHAR}{event['vulnerability']['status']}{CSV_CHAR}{event['vulnerability']['external_references']}{CSV_CHAR}{event['package']['name']}{CSV_CHAR}{event['package']['version']}{CSV_CHAR}{event['package']['architecture']}{CSV_CHAR}{event['package']['condition']}{CSV_CHAR}")
+                csv_file.write(f"{agent['name']}{CSV_CHAR}{agent['id']}{CSV_CHAR}{agent['ip']}{CSV_CHAR}{event['vulnerability']['type']}{CSV_CHAR}{event['rule']['description']}{CSV_CHAR}{event['vulnerability']['detection_time']}{CSV_CHAR}{event['vulnerability']['cve']}{CSV_CHAR}{event['vulnerability']['severity']}{CSV_CHAR}{event['vulnerability']['status']}{CSV_CHAR}{event['vulnerability']['external_references']}{CSV_CHAR}{event['vulnerability']['package']['name']}{CSV_CHAR}{event['vulnerability']['package']['version']}{CSV_CHAR}{event['vulnerability']['package']['architecture']}{CSV_CHAR}{event['vulnerability']['package']['condition']}{CSV_CHAR}")
                 if "cvss" in event:
                     if "cvss3" in event['cvss']:
                         csv_file.write(f"{event['cvss']['cvss3']['base_score']}{CSV_CHAR}")
@@ -261,7 +260,7 @@ def exportCSV(event):
         csv_file = open(str(CSV_FILE), 'w')
         if LOGTEST:
             csv_file.write(f'Agent{CSV_CHAR}Agent_ID{CSV_CHAR}Agent_IP{CSV_CHAR}Type{CSV_CHAR}Description{CSV_CHAR}Detection_Date{CSV_CHAR}CVE{CSV_CHAR}Severity{CSV_CHAR}Status{CSV_CHAR}External_References{CSV_CHAR}Package{CSV_CHAR}Pack_Version{CSV_CHAR}Pack_Arch{CSV_CHAR}Pack_Condition{CSV_CHAR}CVSS3_Score{CSV_CHAR}CVSS2_Score\n')
-            csv_file.write(f"{event['agent']['name']}{CSV_CHAR}{event['agent']['id']}{CSV_CHAR}{event['agent']['ip']}{CSV_CHAR}{event['vulnerability']['type']}{CSV_CHAR}{event['rule']['description']}{CSV_CHAR}{event['vulnerability']['detection_time']}{CSV_CHAR}{event['vulnerability']['cve']}{CSV_CHAR}{event['vulnerability']['seventerity']}{CSV_CHAR}{event['vulnerability']['status']}{CSV_CHAR}{event['vulnerability']['external_references']}{CSV_CHAR}{event['package']['name']}{CSV_CHAR}{event['package']['version']}{CSV_CHAR}{event['package']['architecture']}{CSV_CHAR}{event['package']['condition']}{CSV_CHAR}")
+            csv_file.write(f"{agent['name']}{CSV_CHAR}{agent['id']}{CSV_CHAR}{agent['ip']}{CSV_CHAR}{event['vulnerability']['type']}{CSV_CHAR}{event['rule']['description']}{CSV_CHAR}{event['vulnerability']['detection_time']}{CSV_CHAR}{event['vulnerability']['cve']}{CSV_CHAR}{event['vulnerability']['seventerity']}{CSV_CHAR}{event['vulnerability']['status']}{CSV_CHAR}{event['vulnerability']['external_references']}{CSV_CHAR}{event['vulnerability']['package']['name']}{CSV_CHAR}{event['vulnerability']['package']['version']}{CSV_CHAR}{event['vulnerability']['package']['architecture']}{CSV_CHAR}{event['vulnerability']['package']['condition']}{CSV_CHAR}")
             if "cvss3" in event['cvss']:
                 csv_file.write(f"{event['cvss']['cvss3']['base_score']}{CSV_CHAR}")
             else:
@@ -272,7 +271,7 @@ def exportCSV(event):
                 csv_file.write("-\n")
         else:
             csv_file.write(f'Agent{CSV_CHAR}Agent_ID{CSV_CHAR}Agent_IP{CSV_CHAR}Type{CSV_CHAR}Description{CSV_CHAR}Detection_Date{CSV_CHAR}CVE{CSV_CHAR}Severity{CSV_CHAR}Status{CSV_CHAR}External_References{CSV_CHAR}Package{CSV_CHAR}Pack_Version{CSV_CHAR}Pack_Arch{CSV_CHAR}Pack_Condition{CSV_CHAR}CVSS3_Score{CSV_CHAR}CVSS2_Score\n')
-            csv_file.write(f"{event['agent']['name']}{CSV_CHAR}{event['agent']['id']}{CSV_CHAR}{event['agent']['ip']}{CSV_CHAR}{event['vulnerability']['type']}{CSV_CHAR}{event['rule']['description']}{CSV_CHAR}{event['vulnerability']['detection_time']}{CSV_CHAR}{event['vulnerability']['cve']}{CSV_CHAR}{event['vulnerability']['severity']}{CSV_CHAR}{event['vulnerability']['status']}{CSV_CHAR}{event['vulnerability']['external_references']}{CSV_CHAR}{event['package']['name']}{CSV_CHAR}{event['package']['version']}{CSV_CHAR}{event['package']['architecture']}{CSV_CHAR}{event['package']['condition']}{CSV_CHAR}")
+            csv_file.write(f"{agent['name']}{CSV_CHAR}{agent['id']}{CSV_CHAR}{agent['ip']}{CSV_CHAR}{event['vulnerability']['type']}{CSV_CHAR}{event['rule']['description']}{CSV_CHAR}{event['vulnerability']['detection_time']}{CSV_CHAR}{event['vulnerability']['cve']}{CSV_CHAR}{event['vulnerability']['severity']}{CSV_CHAR}{event['vulnerability']['status']}{CSV_CHAR}{event['vulnerability']['external_references']}{CSV_CHAR}{event['vulnerability']['package']['name']}{CSV_CHAR}{event['vulnerability']['package']['version']}{CSV_CHAR}{event['vulnerability']['package']['architecture']}{CSV_CHAR}{event['vulnerability']['package']['condition']}{CSV_CHAR}")
             if "cvss" in event:
                 if "cvss3" in event['cvss']:
                     csv_file.write(f"{event['cvss']['cvss3']['base_score']}{CSV_CHAR}")
