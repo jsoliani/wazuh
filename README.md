@@ -63,14 +63,3 @@ optional arguments:
 
 ```
 
-# The vd_db_cleaner tool
-
- It cleans agents' internal db files and reset the vd flag to force a full_scan on the agents' side. 
- 
- `# vd_db_cleaner.py`
- ```
- Cleaning vulnes and resetting LAST_FULL_SCAN of AgentID: 000
- Cleaning vulnes and resetting LAST_FULL_SCAN of AgentID: 001
- Cleaning vulnes and resetting LAST_FULL_SCAN of AgentID: 002
- Cleaning vulnes and resetting LAST_FULL_SCAN of AgentID: 004
- ```
